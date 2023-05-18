@@ -1,0 +1,54 @@
+import cv2
+import numpy as np
+
+def detect_colors(image_path):
+    # Load the image
+    image = cv2.imread(image_path)
+
+    # Convert the image from BGR to HSV color space
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # Define color ranges for detection (you can add more ranges if needed)
+    color_ranges = [
+        ((0, 50, 50), (10, 255, 255), "Red"),
+        ((36, 50, 50), (70, 255, 255), "Green"),
+        ((110, 50, 50), (130, 255, 255), "Blue"),
+    ]
+
+    detected_colors = []
+
+    # Iterate through each color range and perform color detection
+    for (lower, upper, color_name) in color_ranges:
+        lower = np.array(lower, dtype=np.uint8)
+        upper = np.array(upper, dtype=np.uint8)
+
+        # Create a mask for the color range
+        mask = cv2.inRange(hsv_image, lower, upper)
+
+        # Find contours in the mask
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Check if any contours were found
+        if len(contours) > 0:
+            # Calculate the area of each contour and find the largest one
+            areas = [cv2.contourArea(contour) for contour in contours]
+            max_index = np.argmax(areas)
+            max_contour = contours[max_index]
+
+            # Calculate the centroid of the largest contour
+            M = cv2.moments(max_contour)
+            centroid_x = int(M["m10"] / M["m00"])
+            centroid_y = int(M["m01"] / M["m00"])
+
+            # Add the color name and centroid coordinates to the list of detected colors
+            detected_colors.append((color_name, centroid_x, centroid_y))
+
+    return detected_colors
+
+# Example usage
+image_path = "/Users/RGUKT/Pictures/Images/download2.jpg"
+detected_colors = detect_colors(image_path)
+
+# Print the detected colors and their centroids
+for color, centroid_x, centroid_y in detected_colors:
+    print(f"Detected {color} at ({centroid_x}, {centroid_y})")
